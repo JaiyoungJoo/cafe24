@@ -1,0 +1,258 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/js/all.min.js"></script>
+
+<style>
+    body {
+        text-align: center;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+    }
+
+    .drawing-board {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        border: 2px solid #ddd;
+        background: #f9f9f9;
+        border-radius: 10px;
+        width: 95%;
+        max-width: 600px;
+        position: relative;
+        margin: auto;
+    }
+
+    .color-palette {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+
+    .color-button {
+        width: 40px;
+        height: 40px;
+        border: none;
+        background: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 3px;
+    }
+
+    .color-button i {
+        font-size: 26px;
+    }
+
+    canvas {
+        border: 2px solid black;
+        background: white;
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        touch-action: none;
+        cursor: crosshair;
+    }
+
+    .controls {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .controls button {
+        padding: 8px 12px;
+        border: none;
+        background: #007bff;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+
+    .controls button:hover {
+        background: #0056b3;
+    }
+
+    .erase-mode {
+        background: #dc3545 !important;
+    }
+
+    @media (max-width: 768px) {
+        .color-button {
+            width: 35px;
+            height: 35px;
+        }
+
+        .color-button i {
+            font-size: 22px;
+        }
+
+        .controls button {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+    }
+</style>
+
+<!-- 그림판 추가 -->
+<div class="drawing-board">
+    <h2>그림판</h2>
+
+    <div class="color-palette">
+        <button class="color-button" onclick="setPenColor('red')">
+            <i class="fas fa-circle" style="color: red;"></i>
+        </button>
+        <button class="color-button" onclick="setPenColor('orange')">
+            <i class="fas fa-circle" style="color: orange;"></i>
+        </button>
+        <button class="color-button" onclick="setPenColor('yellow')">
+            <i class="fas fa-circle" style="color: yellow;"></i>
+        </button>
+        <button class="color-button" onclick="setPenColor('green')">
+            <i class="fas fa-circle" style="color: green;"></i>
+        </button>
+        <button class="color-button" onclick="setPenColor('blue')">
+            <i class="fas fa-circle" style="color: blue;"></i>
+        </button>
+        <button class="color-button" onclick="setPenColor('navy')">
+            <i class="fas fa-circle" style="color: navy;"></i>
+        </button>
+        <button class="color-button" onclick="setPenColor('purple')">
+            <i class="fas fa-circle" style="color: purple;"></i>
+        </button>
+    </div>
+
+    <label for="penColor">펜 색상: </label>
+    <input type="color" id="penColor" value="#000000">
+
+    <br><br>
+
+    <canvas id="drawingCanvas"></canvas>
+
+    <br>
+
+    <div class="controls">
+        <button onclick="toggleEraser()" id="eraserButton">지우개</button>
+        <button onclick="clearCanvas()">전체 지우기</button>
+        <button onclick="saveImage()">저장</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById("drawingCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let drawing = false;
+    let penColor = "#000000";
+    let isErasing = false;
+    let savedImageData = null;
+
+    function resizeCanvas() {
+        const container = document.querySelector(".drawing-board");
+        savedImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        canvas.width = container.clientWidth * 0.95;
+        canvas.height = canvas.width * 0.6;
+
+        setCanvasBackground();
+        if (savedImageData) {
+            ctx.putImageData(savedImageData, 0, 0);
+        }
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener("load", resizeCanvas);
+
+    function setCanvasBackground() {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+    }
+
+    function setPenColor(color) {
+        penColor = color;
+        isErasing = false;
+        ctx.strokeStyle = penColor; // 색상 즉시 반영
+        ctx.lineWidth = 3;
+        document.getElementById("eraserButton").classList.remove("erase-mode");
+    }
+
+    document.getElementById("penColor").addEventListener("change", function () {
+        setPenColor(this.value);
+    });
+
+    function toggleEraser() {
+        isErasing = !isErasing;
+        if (isErasing) {
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 15;
+            document.getElementById("eraserButton").classList.add("erase-mode");
+        } else {
+            ctx.strokeStyle = penColor;
+            ctx.lineWidth = 3;
+            document.getElementById("eraserButton").classList.remove("erase-mode");
+        }
+    }
+
+    canvas.addEventListener("mousedown", (event) => {
+        drawing = true;
+        const { x, y } = getCanvasCoordinates(event);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    });
+
+    canvas.addEventListener("mousemove", (event) => {
+        if (!drawing) return;
+        const { x, y } = getCanvasCoordinates(event);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    });
+
+    canvas.addEventListener("mouseup", () => drawing = false);
+    canvas.addEventListener("mouseleave", () => drawing = false);
+
+    canvas.addEventListener("touchstart", (event) => {
+        drawing = true;
+        event.preventDefault();
+        const touch = event.touches[0];
+        const { x, y } = getCanvasCoordinates(touch);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    });
+
+    canvas.addEventListener("touchmove", (event) => {
+        if (!drawing) return;
+        event.preventDefault();
+        const touch = event.touches[0];
+        const { x, y } = getCanvasCoordinates(touch);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    });
+
+    canvas.addEventListener("touchend", () => drawing = false);
+
+    function getCanvasCoordinates(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
+    }
+
+    function clearCanvas() {
+        setCanvasBackground();
+        savedImageData = null;
+    }
+
+    function saveImage() {
+        const link = document.createElement('a');
+        link.download = 'drawing.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+</script>
